@@ -220,12 +220,21 @@ class Install_CredentialsController extends CommunityID_Controller_Action {
 
     if( version_compare( PHP_VERSION , self::PHP_MINIMAL_VERSION_REQUIRED , '<' ) )
       $errors[] = $this->view->translate( 'PHP version %s or greater is required' , self::PHP_MINIMAL_VERSION_REQUIRED );
+
     if( ( file_exists( APP_DIR.DIRECTORY_SEPARATOR.'config.php' ) && !is_writable( APP_DIR.DIRECTORY_SEPARATOR.'config.php' ) )
         || !@touch( APP_DIR.DIRECTORY_SEPARATOR.'config.php' ) )
       $errors[] = $this->view->translate('The directory where Community-ID is installed must be writable by the web server user (%s). Another option is to create an EMPTY config.php file that is writable by that user.' , $webServerUser );
-    if( ( is_dir( WEB_DIR.'/captchas' ) && !is_writable( WEB_DIR.'/captchas' ) )
-        || !@mkdir( WEB_DIR.'/captchas' ) )
-      $errors[] = $this->view->translate('The directory "captchas" under the web directory for Community-ID must be writable by the web server user (%s)' , $webServerUser );
+    if( !( is_dir( WEB_DIR.'/captchas' ) && is_writable( WEB_DIR.'/captchas' ) ) ){
+      if( !is_dir( WEB_DIR.'/captchas' ) )
+        mkdir( WEB_DIR.'/captchas' );
+      if( !is_writable( WEB_DIR.'/captchas' ) ){
+        chmod( WEB_DIR.'/captchas' , 0777 );
+        chown( WEB_DIR.'/captchas' , $webServerUser );
+      }
+      if( !( is_dir( WEB_DIR.'/captchas' ) && is_writable( WEB_DIR.'/captchas' ) ) )
+        $errors[] = $this->view->translate('The directory "captchas" under the web directory for Community-ID must be writable by the web server user (%s)' , $webServerUser );
+    }
+
     if( !extension_loaded( 'mysqli' ) )
       $errors[] = $this->view->translate( 'You need to have the %s extension installed', '<a href="http://www.php.net/manual/en/mysqli.installation.php">MySQLi</a>' );
     if( !extension_loaded( 'gd' ) )
